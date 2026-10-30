@@ -1,0 +1,15 @@
+{
+  "name": "duplikate-plugin",
+  "description": "Duplikate's plugin for Claude Code",
+  "owner": {
+    "name": "Duplikate, a Traide product",
+    "url": "https://duplikate.io"
+  },
+  "plugins": [
+    {
+      "name": "duplikate",
+      "source": "./duplikate",
+      "description": "Ask your engram what you would decide, and gate opening a pull request, sending mail and posting a message on it"
+    }
+  ]
+}

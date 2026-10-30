@@ -1,0 +1,23 @@
+{
+  "name": "duplikate",
+  "displayName": "Duplikate",
+  "version": "1.0.0",
+  "description": "Ask your engram what you would decide, and gate opening a pull request, sending mail and posting a message on it",
+  "author": {
+    "name": "Duplikate, a Traide product",
+    "url": "https://duplikate.io"
+  },
+  "homepage": "https://duplikate.io",
+  "privacyPolicyUrl": "https://duplikate.io/legal/privacy",
+  "termsOfServiceUrl": "https://duplikate.io/legal/terms",
+  "repository": "https://github.com/The-Traide/duplikate-plugin",
+  "keywords": ["duplikate", "engram", "mcp", "hooks"],
+  "userConfig": {
+    "hook_key": {
+      "type": "string",
+      "title": "Hook key",
+      "description": "The hook key from Duplikate's Connections screen, which starts with dk_. Until it is set, opening a pull request, sending mail and posting a message are blocked.",
+      "sensitive": true
+    }
+  }
+}

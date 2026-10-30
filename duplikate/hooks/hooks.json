@@ -1,0 +1,157 @@
+{
+  "description": "Duplikate's gate: before Claude Code opens a pull request, sends mail or posts a message, it asks Duplikate whether a consult was made for that kind of action, sending only the kind of action and the hook key. It blocks when Duplikate cannot be reached. After the action, it reports that it was done.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Bash(gh pr create*)",
+            "command": "m=\"Duplikate could not check this action, so it is blocked: set the hook key from Duplikate's Connections screen, or try again.\"; r=$(printf 'Authorization: Bearer %s\\n' \"$CLAUDE_PLUGIN_OPTION_HOOK_KEY\" | curl -sSf --max-time 10 -X POST -H @- 'https://duplikate.io/api/gate?action=open_pull_request&event=pre') || { echo \"$m\" >&2; exit 2; }; case $r in '{'*'}') printf '%s\\n' \"$r\" ;; *) echo \"$m\" >&2; exit 2 ;; esac",
+            "timeout": 15,
+            "onFailure": "block"
+          },
+          {
+            "type": "command",
+            "if": "Bash(gh pr new*)",
+            "command": "m=\"Duplikate could not check this action, so it is blocked: set the hook key from Duplikate's Connections screen, or try again.\"; r=$(printf 'Authorization: Bearer %s\\n' \"$CLAUDE_PLUGIN_OPTION_HOOK_KEY\" | curl -sSf --max-time 10 -X POST -H @- 'https://duplikate.io/api/gate?action=open_pull_request&event=pre') || { echo \"$m\" >&2; exit 2; }; case $r in '{'*'}') printf '%s\\n' \"$r\" ;; *) echo \"$m\" >&2; exit 2 ;; esac",
+            "timeout": 15,
+            "onFailure": "block"
+          }
+        ]
+      },
+      {
+        "matcher": "^mcp__.+__create_pull_request$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "m=\"Duplikate could not check this action, so it is blocked: set the hook key from Duplikate's Connections screen, or try again.\"; r=$(printf 'Authorization: Bearer %s\\n' \"$CLAUDE_PLUGIN_OPTION_HOOK_KEY\" | curl -sSf --max-time 10 -X POST -H @- 'https://duplikate.io/api/gate?action=open_pull_request&event=pre') || { echo \"$m\" >&2; exit 2; }; case $r in '{'*'}') printf '%s\\n' \"$r\" ;; *) echo \"$m\" >&2; exit 2 ;; esac",
+            "timeout": 15,
+            "onFailure": "block"
+          }
+        ]
+      },
+      {
+        "matcher": "^mcp__.*[Gg]mail__(send_message|reply|forward)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "m=\"Duplikate could not check this action, so it is blocked: set the hook key from Duplikate's Connections screen, or try again.\"; r=$(printf 'Authorization: Bearer %s\\n' \"$CLAUDE_PLUGIN_OPTION_HOOK_KEY\" | curl -sSf --max-time 10 -X POST -H @- 'https://duplikate.io/api/gate?action=send_mail&event=pre') || { echo \"$m\" >&2; exit 2; }; case $r in '{'*'}') printf '%s\\n' \"$r\" ;; *) echo \"$m\" >&2; exit 2 ;; esac",
+            "timeout": 15,
+            "onFailure": "block"
+          }
+        ]
+      },
+      {
+        "matcher": "^mcp__.+__slack_(send_message|schedule_message)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "m=\"Duplikate could not check this action, so it is blocked: set the hook key from Duplikate's Connections screen, or try again.\"; r=$(printf 'Authorization: Bearer %s\\n' \"$CLAUDE_PLUGIN_OPTION_HOOK_KEY\" | curl -sSf --max-time 10 -X POST -H @- 'https://duplikate.io/api/gate?action=post_message&event=pre') || { echo \"$m\" >&2; exit 2; }; case $r in '{'*'}') printf '%s\\n' \"$r\" ;; *) echo \"$m\" >&2; exit 2 ;; esac",
+            "timeout": 15,
+            "onFailure": "block"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Bash(gh pr create*)",
+            "command": "printf 'Authorization: Bearer %s\\n' \"$CLAUDE_PLUGIN_OPTION_HOOK_KEY\" | curl -sSf --max-time 10 -X POST -H @- -o /dev/null 'https://duplikate.io/api/gate?action=open_pull_request&event=done'",
+            "timeout": 15
+          },
+          {
+            "type": "command",
+            "if": "Bash(gh pr new*)",
+            "command": "printf 'Authorization: Bearer %s\\n' \"$CLAUDE_PLUGIN_OPTION_HOOK_KEY\" | curl -sSf --max-time 10 -X POST -H @- -o /dev/null 'https://duplikate.io/api/gate?action=open_pull_request&event=done'",
+            "timeout": 15
+          }
+        ]
+      },
+      {
+        "matcher": "^mcp__.+__create_pull_request$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "printf 'Authorization: Bearer %s\\n' \"$CLAUDE_PLUGIN_OPTION_HOOK_KEY\" | curl -sSf --max-time 10 -X POST -H @- -o /dev/null 'https://duplikate.io/api/gate?action=open_pull_request&event=done'",
+            "timeout": 15
+          }
+        ]
+      },
+      {
+        "matcher": "^mcp__.*[Gg]mail__(send_message|reply|forward)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "printf 'Authorization: Bearer %s\\n' \"$CLAUDE_PLUGIN_OPTION_HOOK_KEY\" | curl -sSf --max-time 10 -X POST -H @- -o /dev/null 'https://duplikate.io/api/gate?action=send_mail&event=done'",
+            "timeout": 15
+          }
+        ]
+      },
+      {
+        "matcher": "^mcp__.+__slack_(send_message|schedule_message)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "printf 'Authorization: Bearer %s\\n' \"$CLAUDE_PLUGIN_OPTION_HOOK_KEY\" | curl -sSf --max-time 10 -X POST -H @- -o /dev/null 'https://duplikate.io/api/gate?action=post_message&event=done'",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Bash(gh pr create*)",
+            "command": "printf 'Authorization: Bearer %s\\n' \"$CLAUDE_PLUGIN_OPTION_HOOK_KEY\" | curl -sSf --max-time 10 -X POST -H @- -o /dev/null 'https://duplikate.io/api/gate?action=open_pull_request&event=done'",
+            "timeout": 15
+          },
+          {
+            "type": "command",
+            "if": "Bash(gh pr new*)",
+            "command": "printf 'Authorization: Bearer %s\\n' \"$CLAUDE_PLUGIN_OPTION_HOOK_KEY\" | curl -sSf --max-time 10 -X POST -H @- -o /dev/null 'https://duplikate.io/api/gate?action=open_pull_request&event=done'",
+            "timeout": 15
+          }
+        ]
+      },
+      {
+        "matcher": "^mcp__.+__create_pull_request$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "printf 'Authorization: Bearer %s\\n' \"$CLAUDE_PLUGIN_OPTION_HOOK_KEY\" | curl -sSf --max-time 10 -X POST -H @- -o /dev/null 'https://duplikate.io/api/gate?action=open_pull_request&event=done'",
+            "timeout": 15
+          }
+        ]
+      },
+      {
+        "matcher": "^mcp__.*[Gg]mail__(send_message|reply|forward)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "printf 'Authorization: Bearer %s\\n' \"$CLAUDE_PLUGIN_OPTION_HOOK_KEY\" | curl -sSf --max-time 10 -X POST -H @- -o /dev/null 'https://duplikate.io/api/gate?action=send_mail&event=done'",
+            "timeout": 15
+          }
+        ]
+      },
+      {
+        "matcher": "^mcp__.+__slack_(send_message|schedule_message)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "printf 'Authorization: Bearer %s\\n' \"$CLAUDE_PLUGIN_OPTION_HOOK_KEY\" | curl -sSf --max-time 10 -X POST -H @- -o /dev/null 'https://duplikate.io/api/gate?action=post_message&event=done'",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}
