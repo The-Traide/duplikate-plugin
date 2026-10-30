@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "duplikate": {
+      "type": "http",
+      "url": "https://duplikate.io/mcp"
+    }
+  }
+}
