@@ -29,7 +29,9 @@ Until the key is set, the gate blocks every action it checks. An action the conn
 
 The hook sends Duplikate the kind of action and the hook key, and nothing else: never the command, the pull request, the mail or the message. The key travels in a request header, and never on a command line.
 
-It blocks when it cannot get an answer: Duplikate unreachable, an error, no answer within ten seconds, a missing or revoked key, or an answer that is not a decision. It needs Claude Code 2.1.295 or later, `curl`, and a POSIX shell (macOS, Linux, or Windows with Git Bash).
+In Bash, the hook first reads the command on this machine, and asks Duplikate only when it holds `gh pr create` or `gh pr new`. Claude Code runs a Bash hook on any command it cannot read whole, such as one with `$(…)` or a variable, so the plugin checks the command itself. An ordinary command never waits on Duplikate, and nothing is sent for it.
+
+It blocks when it cannot get an answer: Duplikate unreachable, an error, no answer within ten seconds, a missing or revoked key, or an answer that is not a decision. It needs Claude Code 2.1.295 or later, `curl`, `grep`, and a POSIX shell (macOS, Linux, or Windows with Git Bash).
 
 What Duplikate keeps of each call, and for how long, is in its [Privacy policy](https://duplikate.io/legal/privacy).
 
