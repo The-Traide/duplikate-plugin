@@ -27,6 +27,15 @@ const PRE = (action) =>
   `m="${MESSAGE}"; r=$(${HEADER} | curl -sSf --max-time 10 -X POST -H @- '${ORIGIN}/api/gate?action=${action}&event=pre') || { echo "$m" >&2; exit 2; }; case $r in '{'*'}') printf '%s\\n' "$r" ;; *) echo "$m" >&2; exit 2 ;; esac`
 /** After an action: the report that it was done, printing nothing. */
 const DONE = (action) => `${HEADER} | curl -sSf --max-time 10 -X POST -H @- -o /dev/null '${ORIGIN}/api/gate?action=${action}&event=done'`
+/**
+ * A Bash hook reads the command first, on this machine, and goes on only for `gh pr create` or `gh pr new`. Claude Code
+ * runs a Bash `if` that names more than the command on any command holding $(), backticks or $VAR, and on any it cannot
+ * read whole (hooks reference, "How `if` patterns match Bash commands", read 2026-11-06), so the `if` alone let the gate
+ * be asked, and block, on most ordinary commands.
+ */
+const GUARD = "grep -Eq 'gh[[:space:]]+pr[[:space:]]+(create|new)' || exit 0; "
+/** A hook group's handler command, as the template writes it: a Bash group's reads the command first. */
+const expected = (group, command) => (group.matcher === 'Bash' ? GUARD + command : command)
 
 /**
  * Whether a hook group's matcher fires for a tool, as Claude Code's hooks reference says ("Matcher patterns", read
@@ -127,13 +136,18 @@ test('every hook is the template: before, blocking on failure, its timeout past 
   for (const group of hooks.PreToolUse) {
     for (const handler of group.hooks) {
       actions.add(actionOf(handler))
-      assert.deepEqual({ ...handler, if: undefined }, { type: 'command', if: undefined, command: PRE(actionOf(handler)), timeout: 15, onFailure: 'block' })
+      assert.deepEqual({ ...handler, if: undefined }, { type: 'command', if: undefined, command: expected(group, PRE(actionOf(handler))), timeout: 15, onFailure: 'block' })
     }
   }
   assert.deepEqual([...actions].sort(), [...ACTIONS].sort())
   for (const event of ['PostToolUse', 'PostToolUseFailure']) {
-    for (const handler of hooks[event].flatMap((group) => group.hooks)) assert.deepEqual({ ...handler, if: undefined }, { type: 'command', if: undefined, command: DONE(actionOf(handler)), timeout: 15 })
+    for (const group of hooks[event]) {
+      for (const handler of group.hooks) assert.deepEqual({ ...handler, if: undefined }, { type: 'command', if: undefined, command: expected(group, DONE(actionOf(handler))), timeout: 15 })
+    }
   }
+  // Only the Bash group reads the command: a tool matched by its own name is the action itself.
+  const guarded = Object.values(hooks).flatMap((groups) => groups.flatMap((group) => group.hooks.filter((handler) => handler.command.startsWith(GUARD)).map(() => group.matcher)))
+  assert.deepEqual(guarded, ['Bash', 'Bash', 'Bash', 'Bash', 'Bash', 'Bash'])
 })
 
 // A local stand-in for the gate: it records every request and answers as the test sets it.
@@ -165,7 +179,7 @@ const local = (command, to = `http://127.0.0.1:${port}`) => {
   return command.replace(ORIGIN, to)
 }
 /** Run a hook command as Claude Code does, in a shell, the tool's input on stdin; its exit code and output. */
-function run(command, env = { CLAUDE_PLUGIN_OPTION_HOOK_KEY: KEY }) {
+function run(command, env = { CLAUDE_PLUGIN_OPTION_HOOK_KEY: KEY }, bash = `gh pr create --body ${SECRET}`, event = 'PreToolUse') {
   return new Promise((resolve) => {
     const child = spawn('/bin/sh', ['-c', command], { env: { PATH: process.env.PATH, ...env } })
     let stdout = ''
@@ -174,7 +188,7 @@ function run(command, env = { CLAUDE_PLUGIN_OPTION_HOOK_KEY: KEY }) {
     child.stderr.on('data', (chunk) => (stderr += chunk))
     child.on('close', (code) => resolve({ code, stdout, stderr }))
     child.stdin.on('error', () => {})
-    child.stdin.end(JSON.stringify({ hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command: `gh pr create --body ${SECRET}` } }))
+    child.stdin.end(JSON.stringify({ hook_event_name: event, tool_name: 'Bash', tool_input: { command: bash } }))
   })
 }
 /** The command hooks.json ships for an event and an action (the first handler for it), the one the person runs. */
@@ -244,6 +258,48 @@ test('before: no answer within ten seconds blocks, inside the hook’s own fifte
   assert.ok(took >= 9_500 && took < 15_000, `${took} ms`)
 })
 
+// The Bash commands Claude Code runs a Bash hook on, as its hooks reference's table and these sessions show: the hook
+// must tell them apart itself. Not a pull request's opening: never a call, nothing printed, exit 0, so nothing is blocked.
+const NOT_OPENING = ['echo $(date)', 'npm test', 'L=$HOME; ls $L', 'gh pr view 12', 'gh pr list --state all', 'gh api repos/o/r/pulls -f title=x', 'git push', 'gt submit', 'for i in $(seq 1 3); do echo $i; done']
+const OPENING = ['gh pr create --title t', 'npm test && gh pr create', 'FOO=1 gh pr new', 'echo $(gh pr create --fill)', '/opt/homebrew/bin/gh  pr   create', 'gh pr create \\\n  --title t']
+const bashHook = (event) => hooks[event].find((group) => group.matcher === 'Bash').hooks[0].command
+
+test('Bash, before: the command is read on this machine; the gate is asked only for gh pr create or gh pr new', async () => {
+  answer = respond(200, '{}')
+  for (const command of NOT_OPENING) {
+    requests.length = 0
+    assert.deepEqual(await run(local(bashHook('PreToolUse')), undefined, command), { code: 0, stdout: '', stderr: '' }, command)
+    assert.equal(requests.length, 0, `${command}: no call`)
+  }
+  // Not even when the gate is down: an ordinary command never waits on it.
+  answer = respond(503, '')
+  assert.deepEqual(await run(local(bashHook('PreToolUse')), undefined, 'echo $(date)'), { code: 0, stdout: '', stderr: '' })
+  const decision = JSON.stringify({ hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: 'Consult Duplikate first.' } })
+  answer = respond(200, decision)
+  for (const command of OPENING) {
+    requests.length = 0
+    assert.deepEqual(await run(local(bashHook('PreToolUse')), undefined, command), { code: 0, stdout: `${decision}\n`, stderr: '' }, command)
+    assert.deepEqual(requests.map((r) => r.url), ['/api/gate?action=open_pull_request&event=pre'], command)
+  }
+  // A real opening still blocks when the gate cannot answer.
+  answer = respond(503, '')
+  assert.equal((await run(local(bashHook('PreToolUse')), undefined, 'gh pr create')).code, 2)
+})
+
+test('Bash, after: done is reported only for gh pr create or gh pr new, so an ordinary command writes nothing', async () => {
+  answer = respond(200, '{}')
+  for (const event of ['PostToolUse', 'PostToolUseFailure']) {
+    for (const command of NOT_OPENING) {
+      requests.length = 0
+      assert.deepEqual(await run(local(bashHook(event)), undefined, command, event), { code: 0, stdout: '', stderr: '' }, `${event}: ${command}`)
+      assert.equal(requests.length, 0, `${event}: ${command}`)
+    }
+    requests.length = 0
+    assert.equal((await run(local(bashHook(event)), undefined, 'gh pr create --fill', event)).code, 0)
+    assert.deepEqual(requests.map((r) => r.url), ['/api/gate?action=open_pull_request&event=done'], event)
+  }
+})
+
 test('after: the report that it was done, with no body, printing nothing; a failure is curl’s own, never exit 2', async () => {
   for (const action of ACTIONS) {
     requests.length = 0
@@ -261,6 +317,8 @@ test('the README says what is gated, and that nothing else is', () => {
   const readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')
   for (const name of ['gh pr create', 'gh pr new', 'create_pull_request', 'send_message', 'reply', 'forward', 'slack_send_message', 'slack_schedule_message', 'git push', 'gt submit']) assert.ok(readme.includes(`\`${name}\``), name)
   assert.match(readme, /Nothing else is gated/)
+  assert.match(readme, /In Bash, the hook first reads the command on this machine, and asks Duplikate only when it holds `gh pr create` or `gh pr new`/)
+  assert.match(readme, /`curl`, `grep`, and a POSIX shell/)
   assert.match(readme, /\/plugin marketplace add The-Traide\/duplikate-plugin/)
   assert.match(readme, /\/plugin install duplikate@duplikate-plugin/)
 })

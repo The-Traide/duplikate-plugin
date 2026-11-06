@@ -1,7 +1,7 @@
 {
   "name": "duplikate",
   "displayName": "Duplikate",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Ask your engram what you would decide, and gate opening a pull request, sending mail and posting a message on it",
   "author": {
     "name": "Duplikate, a Traide product",

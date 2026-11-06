@@ -8,14 +8,14 @@
           {
             "type": "command",
             "if": "Bash(gh pr create*)",
-            "command": "m=\"Duplikate could not check this action, so it is blocked: set the hook key from Duplikate's Connections screen, or try again.\"; r=$(printf 'Authorization: Bearer %s\\n' \"$CLAUDE_PLUGIN_OPTION_HOOK_KEY\" | curl -sSf --max-time 10 -X POST -H @- 'https://duplikate.io/api/gate?action=open_pull_request&event=pre') || { echo \"$m\" >&2; exit 2; }; case $r in '{'*'}') printf '%s\\n' \"$r\" ;; *) echo \"$m\" >&2; exit 2 ;; esac",
+            "command": "grep -Eq 'gh[[:space:]]+pr[[:space:]]+(create|new)' || exit 0; m=\"Duplikate could not check this action, so it is blocked: set the hook key from Duplikate's Connections screen, or try again.\"; r=$(printf 'Authorization: Bearer %s\\n' \"$CLAUDE_PLUGIN_OPTION_HOOK_KEY\" | curl -sSf --max-time 10 -X POST -H @- 'https://duplikate.io/api/gate?action=open_pull_request&event=pre') || { echo \"$m\" >&2; exit 2; }; case $r in '{'*'}') printf '%s\\n' \"$r\" ;; *) echo \"$m\" >&2; exit 2 ;; esac",
             "timeout": 15,
             "onFailure": "block"
           },
           {
             "type": "command",
             "if": "Bash(gh pr new*)",
-            "command": "m=\"Duplikate could not check this action, so it is blocked: set the hook key from Duplikate's Connections screen, or try again.\"; r=$(printf 'Authorization: Bearer %s\\n' \"$CLAUDE_PLUGIN_OPTION_HOOK_KEY\" | curl -sSf --max-time 10 -X POST -H @- 'https://duplikate.io/api/gate?action=open_pull_request&event=pre') || { echo \"$m\" >&2; exit 2; }; case $r in '{'*'}') printf '%s\\n' \"$r\" ;; *) echo \"$m\" >&2; exit 2 ;; esac",
+            "command": "grep -Eq 'gh[[:space:]]+pr[[:space:]]+(create|new)' || exit 0; m=\"Duplikate could not check this action, so it is blocked: set the hook key from Duplikate's Connections screen, or try again.\"; r=$(printf 'Authorization: Bearer %s\\n' \"$CLAUDE_PLUGIN_OPTION_HOOK_KEY\" | curl -sSf --max-time 10 -X POST -H @- 'https://duplikate.io/api/gate?action=open_pull_request&event=pre') || { echo \"$m\" >&2; exit 2; }; case $r in '{'*'}') printf '%s\\n' \"$r\" ;; *) echo \"$m\" >&2; exit 2 ;; esac",
             "timeout": 15,
             "onFailure": "block"
           }
@@ -62,13 +62,13 @@
           {
             "type": "command",
             "if": "Bash(gh pr create*)",
-            "command": "printf 'Authorization: Bearer %s\\n' \"$CLAUDE_PLUGIN_OPTION_HOOK_KEY\" | curl -sSf --max-time 10 -X POST -H @- -o /dev/null 'https://duplikate.io/api/gate?action=open_pull_request&event=done'",
+            "command": "grep -Eq 'gh[[:space:]]+pr[[:space:]]+(create|new)' || exit 0; printf 'Authorization: Bearer %s\\n' \"$CLAUDE_PLUGIN_OPTION_HOOK_KEY\" | curl -sSf --max-time 10 -X POST -H @- -o /dev/null 'https://duplikate.io/api/gate?action=open_pull_request&event=done'",
             "timeout": 15
           },
           {
             "type": "command",
             "if": "Bash(gh pr new*)",
-            "command": "printf 'Authorization: Bearer %s\\n' \"$CLAUDE_PLUGIN_OPTION_HOOK_KEY\" | curl -sSf --max-time 10 -X POST -H @- -o /dev/null 'https://duplikate.io/api/gate?action=open_pull_request&event=done'",
+            "command": "grep -Eq 'gh[[:space:]]+pr[[:space:]]+(create|new)' || exit 0; printf 'Authorization: Bearer %s\\n' \"$CLAUDE_PLUGIN_OPTION_HOOK_KEY\" | curl -sSf --max-time 10 -X POST -H @- -o /dev/null 'https://duplikate.io/api/gate?action=open_pull_request&event=done'",
             "timeout": 15
           }
         ]
@@ -111,13 +111,13 @@
           {
             "type": "command",
             "if": "Bash(gh pr create*)",
-            "command": "printf 'Authorization: Bearer %s\\n' \"$CLAUDE_PLUGIN_OPTION_HOOK_KEY\" | curl -sSf --max-time 10 -X POST -H @- -o /dev/null 'https://duplikate.io/api/gate?action=open_pull_request&event=done'",
+            "command": "grep -Eq 'gh[[:space:]]+pr[[:space:]]+(create|new)' || exit 0; printf 'Authorization: Bearer %s\\n' \"$CLAUDE_PLUGIN_OPTION_HOOK_KEY\" | curl -sSf --max-time 10 -X POST -H @- -o /dev/null 'https://duplikate.io/api/gate?action=open_pull_request&event=done'",
             "timeout": 15
           },
           {
             "type": "command",
             "if": "Bash(gh pr new*)",
-            "command": "printf 'Authorization: Bearer %s\\n' \"$CLAUDE_PLUGIN_OPTION_HOOK_KEY\" | curl -sSf --max-time 10 -X POST -H @- -o /dev/null 'https://duplikate.io/api/gate?action=open_pull_request&event=done'",
+            "command": "grep -Eq 'gh[[:space:]]+pr[[:space:]]+(create|new)' || exit 0; printf 'Authorization: Bearer %s\\n' \"$CLAUDE_PLUGIN_OPTION_HOOK_KEY\" | curl -sSf --max-time 10 -X POST -H @- -o /dev/null 'https://duplikate.io/api/gate?action=open_pull_request&event=done'",
             "timeout": 15
           }
         ]
